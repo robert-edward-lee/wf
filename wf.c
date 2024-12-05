@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "window_functions.h"
+#include "wf.h"
 
 void wf_rect(WF_TYPE *win, size_t N) {
     size_t n;
@@ -10,7 +10,7 @@ void wf_rect(WF_TYPE *win, size_t N) {
     }
 
     for(n = 0; n != N; ++n) {
-        win[n] = (WF_TYPE)1.0;
+        win[n] = 1.0;
     }
 }
 
@@ -22,9 +22,7 @@ void wf_triang_generic(WF_TYPE *win, size_t N, size_t L) {
     }
 
     for(n = 0; n != N; ++n) {
-        win[n] =
-            (WF_TYPE)1.0
-            - WF_ABS((n - ((WF_TYPE)N - (WF_TYPE)1.0) / (WF_TYPE)2.0) / (((WF_TYPE)L - (WF_TYPE)1.0) / (WF_TYPE)2.0));
+        win[n] = 1.0 - WF_ABS((n - (N - 1.0) / 2.0) / ((L - 1.0) / 2.0));
     }
 }
 
@@ -52,11 +50,11 @@ void wf_cosine_sum(WF_TYPE *win, size_t N, const double *a, size_t K) {
     }
 
     for(n = 0; n != N; ++n) {
-        win[n] = (WF_TYPE)a[0];
+        win[n] = a[0];
         sgn = 1;
         for(k = 1; k != K; ++k) {
             sgn *= -1;
-            win[n] += sgn * a[k] * WF_COS((2 * M_PI * k * n) / (N - 1));
+            win[n] += sgn * a[k] * WF_COS((2.0 * M_PI * k * n) / (N - 1.0));
         }
     }
 }
@@ -89,7 +87,11 @@ void wf_blackman_generic(WF_TYPE *win, size_t N, double alpha) {
 }
 
 void wf_blackman(WF_TYPE *win, size_t N) {
-    static const double a[] = {3969.0 / 9304.0, 1155.0 / 4652.0, 714.0 / 18608.0};
+    static const double a[] = {
+        3969.0 / 9304.0,
+        1155.0 / 4652.0,
+        714.0 / 18608.0,
+    };
     wf_cosine_sum(win, N, a, sizeof(a) / sizeof(*a));
 }
 
@@ -109,7 +111,13 @@ void wf_blackman_harris(WF_TYPE *win, size_t N) {
 }
 
 void wf_flap_top(WF_TYPE *win, size_t N) {
-    static const double a[] = {0.21557895, 0.41663158, 0.277263158, 0.083578947, 0.006947368};
+    static const double a[] = {
+        0.21557895,
+        0.41663158,
+        0.277263158,
+        0.083578947,
+        0.006947368,
+    };
     wf_cosine_sum(win, N, a, sizeof(a) / sizeof(*a));
 }
 /******************************************************************************/
@@ -134,10 +142,10 @@ void wf_tukey(WF_TYPE *win, size_t N, double alpha) {
         return;
     }
 
-    for(n = 0; n != (size_t)(alpha * (N - 1) / 2.0 + 1); ++n) {
-        win[n] = (1 - WF_COS((2.0 * M_PI * n) / (alpha * (N - 1)))) / 2;
+    for(n = 0; n != (size_t)(alpha * (N - 1.0) / 2.0 + 1.0); ++n) {
+        win[n] = (1.0 - WF_COS((2.0 * M_PI * n) / (alpha * (N - 1.0)))) / 2.0;
     }
-    for(; n != (size_t)((N - 1) / 2.0 + 1); ++n) {
+    for(; n != (size_t)((N - 1.0) / 2.0 + 1.0); ++n) {
         win[n] = 1.0;
     }
     for(; n != N; ++n) {
