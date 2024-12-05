@@ -1,0 +1,10 @@
+/.vscode
+
+*.a
+*.dll*
+*.err
+*.exe
+*.o
+*.obj
+*.out
+*.tds
