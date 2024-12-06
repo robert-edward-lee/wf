@@ -5,42 +5,41 @@ from scipy.signal import windows
 
 
 class Test(object):
-    EPSILON = 1e-14
+    EPSILON = 1e-15
     WIN_SIZE = 512
     dll = CDLL('./libwf.dll')
     test_arr = (c_double * WIN_SIZE)()
 
     def __init__(self, dll_wf_name: str, scipy_wf_name: str, has_alpha=False, alpha=0.0):
-        self.dll_wf_name = dll_wf_name
-        self.scipy_wf_name = scipy_wf_name
-        self.has_alpha = has_alpha
-        self.alpha = alpha
+        self._dll_wf_name = dll_wf_name
+        self._scipy_wf_name = scipy_wf_name
+        self._has_alpha = has_alpha
+        self._alpha = alpha
+        self._mismatches = 0
 
     def test(self) -> None:
-        res = True
-
-        print(f'test for "{self.dll_wf_name}({
-              self.alpha if self.has_alpha else ''})"')
+        print(f'test for "{self._dll_wf_name}({self._alpha if self._has_alpha else ''})" ... ', end='')
         # функции для получения массивов
-        wf = getattr(self.dll, self.dll_wf_name)
-        scipy_wf = getattr(windows, self.scipy_wf_name)
+        wf = getattr(self.dll, self._dll_wf_name)
+        scipy_wf = getattr(windows, self._scipy_wf_name)
         # создание массивов
-        if not self.has_alpha:
+        if not self._has_alpha:
             wf(self.test_arr, c_size_t(self.WIN_SIZE))
             test_win = scipy_wf(self.WIN_SIZE)
         else:
-            wf(self.test_arr, c_size_t(self.WIN_SIZE), c_double(self.alpha))
-            test_win = scipy_wf(self.WIN_SIZE, self.alpha)
+            wf(self.test_arr, c_size_t(self.WIN_SIZE), c_double(self._alpha))
+            test_win = scipy_wf(self.WIN_SIZE, self._alpha)
         # сравнение массивов
         for i in range(self.WIN_SIZE):
             xn = float(self.test_arr[i])
             ref = float(test_win[i])
 
             if abs(xn - ref) > self.EPSILON:
-                res = False
-                print(f'[{i:03}]: {xn} != {ref}')
+                self._mismatches += 1
 
-        return res
+        print(f'{'passed' if not self._mismatches else f'failed, {self._mismatches} mismatches'}')
+
+        return self._mismatches
 
 
 if __name__ == '__main__':
