@@ -7,11 +7,15 @@
 #include <math.h>
 #include <stddef.h>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif /* M_PI */
+
 #ifndef WF_TYPE
 #define WF_TYPE double
 #endif /* WF_TYPE */
 #ifndef WF_FMT
-#define WF_FMT ".05lf"
+#define WF_FMT ".05f"
 #endif /* WF_FMT */
 #ifndef WF_COS
 #define WF_COS cos
@@ -25,23 +29,21 @@
 
 void wf_rect(WF_TYPE *win, size_t N);
 void wf_triang_generic(WF_TYPE *win, size_t N, size_t L);
-void wf_triang(WF_TYPE *win, size_t N);
 void wf_bartlett(WF_TYPE *win, size_t N);
-void wf_fejer(WF_TYPE *win, size_t N);
+void wf_triang(WF_TYPE *win, size_t N);
 
 /******************************************************************************/
 /*                             Cosine-sum windows                             */
 /******************************************************************************/
 void wf_cosine_sum(WF_TYPE *win, size_t N, const double *a, size_t K);
-void wf_hamming_generic(WF_TYPE *win, size_t N, double alpha);
+void wf_general_hamming(WF_TYPE *win, size_t N, double alpha);
 void wf_hamming(WF_TYPE *win, size_t N);
 void wf_hann(WF_TYPE *win, size_t N);
 void wf_blackman_generic(WF_TYPE *win, size_t N, double alpha);
 void wf_blackman(WF_TYPE *win, size_t N);
-void wf_nuttal(WF_TYPE *win, size_t N);
-void wf_blackman_nuttal(WF_TYPE *win, size_t N);
-void wf_blackman_harris(WF_TYPE *win, size_t N);
-void wf_flap_top(WF_TYPE *win, size_t N);
+void wf_nuttall(WF_TYPE *win, size_t N);
+void wf_blackmanharris(WF_TYPE *win, size_t N);
+void wf_flattop(WF_TYPE *win, size_t N);
 /******************************************************************************/
 /*                           End cosine-sum windows                           */
 /******************************************************************************/

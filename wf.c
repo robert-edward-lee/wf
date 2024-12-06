@@ -26,16 +26,12 @@ void wf_triang_generic(WF_TYPE *win, size_t N, size_t L) {
     }
 }
 
-void wf_triang(WF_TYPE *win, size_t N) {
+void wf_bartlett(WF_TYPE *win, size_t N) {
     wf_triang_generic(win, N, N);
 }
 
-void wf_bartlett(WF_TYPE *win, size_t N) {
+void wf_triang(WF_TYPE *win, size_t N) {
     wf_triang_generic(win, N, N + 1);
-}
-
-void wf_fejer(WF_TYPE *win, size_t N) {
-    wf_triang_generic(win, N, N + 2);
 }
 
 /******************************************************************************/
@@ -59,7 +55,7 @@ void wf_cosine_sum(WF_TYPE *win, size_t N, const double *a, size_t K) {
     }
 }
 
-void wf_hamming_generic(WF_TYPE *win, size_t N, double alpha) {
+void wf_general_hamming(WF_TYPE *win, size_t N, double alpha) {
     static double a[2];
 
     a[0] = alpha;
@@ -68,8 +64,7 @@ void wf_hamming_generic(WF_TYPE *win, size_t N, double alpha) {
 }
 
 void wf_hamming(WF_TYPE *win, size_t N) {
-    static const double a[] = {25.0 / 46.0, 21.0 / 46.0};
-    wf_cosine_sum(win, N, a, sizeof(a) / sizeof(*a));
+    wf_general_hamming(win, N, 0.54);
 }
 
 void wf_hann(WF_TYPE *win, size_t N) {
@@ -87,30 +82,20 @@ void wf_blackman_generic(WF_TYPE *win, size_t N, double alpha) {
 }
 
 void wf_blackman(WF_TYPE *win, size_t N) {
-    static const double a[] = {
-        3969.0 / 9304.0,
-        1155.0 / 4652.0,
-        714.0 / 18608.0,
-    };
-    wf_cosine_sum(win, N, a, sizeof(a) / sizeof(*a));
+    wf_blackman_generic(win, N, 0.16);
 }
 
-void wf_nuttal(WF_TYPE *win, size_t N) {
-    static const double a[] = {0.355768, 0.487396, 0.144232, 0.012604};
-    wf_cosine_sum(win, N, a, sizeof(a) / sizeof(*a));
-}
-
-void wf_blackman_nuttal(WF_TYPE *win, size_t N) {
+void wf_nuttall(WF_TYPE *win, size_t N) {
     static const double a[] = {0.3635819, 0.4891775, 0.1365995, 0.0106411};
     wf_cosine_sum(win, N, a, sizeof(a) / sizeof(*a));
 }
 
-void wf_blackman_harris(WF_TYPE *win, size_t N) {
+void wf_blackmanharris(WF_TYPE *win, size_t N) {
     static const double a[] = {0.35875, 0.48829, 0.14128, 0.01168};
     wf_cosine_sum(win, N, a, sizeof(a) / sizeof(*a));
 }
 
-void wf_flap_top(WF_TYPE *win, size_t N) {
+void wf_flattop(WF_TYPE *win, size_t N) {
     static const double a[] = {
         0.21557895,
         0.41663158,
