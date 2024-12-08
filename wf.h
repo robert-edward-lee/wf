@@ -27,8 +27,10 @@
 #define WF_ABS fabs
 #endif /* WF_ABS */
 
+/******************************************************************************/
+/*                              B-spline windows                              */
+/******************************************************************************/
 void wf_rect(WF_TYPE *win, size_t N);
-void wf_triang_generic(WF_TYPE *win, size_t N, size_t L);
 void wf_bartlett(WF_TYPE *win, size_t N);
 void wf_triang(WF_TYPE *win, size_t N);
 
@@ -44,21 +46,15 @@ void wf_blackman(WF_TYPE *win, size_t N);
 void wf_nuttall(WF_TYPE *win, size_t N);
 void wf_blackmanharris(WF_TYPE *win, size_t N);
 void wf_flattop(WF_TYPE *win, size_t N);
-/******************************************************************************/
-/*                           End cosine-sum windows                           */
-/******************************************************************************/
 
 /******************************************************************************/
 /*                             Adjustable windows                             */
 /******************************************************************************/
 void wf_tukey(WF_TYPE *win, size_t N, double alpha);
-/******************************************************************************/
-/*                           End adjustable windows                           */
-/******************************************************************************/
 
 /******************************************************************************/
 /*                                   Utils                                    */
 /******************************************************************************/
-void win_print(const WF_TYPE *win, size_t N);
+void wf_print(const WF_TYPE *win, size_t N);
 
 #endif /* H_WF */

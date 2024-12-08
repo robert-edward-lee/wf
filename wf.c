@@ -2,6 +2,9 @@
 
 #include "wf.h"
 
+/******************************************************************************/
+/*                              B-spline windows                              */
+/******************************************************************************/
 void wf_rect(WF_TYPE *win, size_t N) {
     size_t n;
 
@@ -14,24 +17,34 @@ void wf_rect(WF_TYPE *win, size_t N) {
     }
 }
 
-void wf_triang_generic(WF_TYPE *win, size_t N, size_t L) {
+void wf_bartlett(WF_TYPE *win, size_t N) {
     size_t n;
 
-    if(!win || !N || !L) {
+    if(!win || !N) {
         return;
     }
 
     for(n = 0; n != N; ++n) {
-        win[n] = 1.0 - WF_ABS((n - (N - 1.0) / 2.0) / ((L - 1.0) / 2.0));
+        win[n] = 1.0 - WF_ABS((n - (N - 1.0) / 2.0) / ((N - 1.0) / 2.0));
     }
 }
 
-void wf_bartlett(WF_TYPE *win, size_t N) {
-    wf_triang_generic(win, N, N);
-}
-
 void wf_triang(WF_TYPE *win, size_t N) {
-    wf_triang_generic(win, N, N + 1);
+    size_t n;
+
+    if(!win || !N) {
+        return;
+    }
+
+    if(N % 2) {
+        for(n = 0; n != N; ++n) {
+            win[n] = 1.0 - WF_ABS((n - (N - 1.0) / 2.0) / ((N + 1.0) / 2.0));
+        }
+    } else {
+        for(n = 0; n != N; ++n) {
+            win[n] = 1.0 - WF_ABS((n - (N - 1.0) / 2.0) / (N / 2.0));
+        }
+    }
 }
 
 /******************************************************************************/
@@ -105,9 +118,6 @@ void wf_flattop(WF_TYPE *win, size_t N) {
     };
     wf_cosine_sum(win, N, a, sizeof(a) / sizeof(*a));
 }
-/******************************************************************************/
-/*                           End cosine-sum windows                           */
-/******************************************************************************/
 
 /******************************************************************************/
 /*                             Adjustable windows                             */
@@ -137,14 +147,11 @@ void wf_tukey(WF_TYPE *win, size_t N, double alpha) {
         win[n] = win[N - n - 1];
     }
 }
-/******************************************************************************/
-/*                           End adjustable windows                           */
-/******************************************************************************/
 
 /******************************************************************************/
 /*                                   Utils                                    */
 /******************************************************************************/
-void win_print(const WF_TYPE *win, size_t N) {
+void wf_print(const WF_TYPE *win, size_t N) {
     size_t n;
 
     printf("static const WF_TYPE win[] = {");

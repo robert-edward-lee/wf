@@ -5,41 +5,42 @@ from scipy.signal import windows
 
 
 class Test(object):
-    EPSILON = 1e-15
-    WIN_SIZE = 512
+    EPSILON = 1e-14
     dll = CDLL('./libwf.dll')
-    test_arr = (c_double * WIN_SIZE)()
 
     def __init__(self, dll_wf_name: str, scipy_wf_name: str, has_alpha=False, alpha=0.0):
         self._dll_wf_name = dll_wf_name
         self._scipy_wf_name = scipy_wf_name
         self._has_alpha = has_alpha
         self._alpha = alpha
-        self._mismatches = 0
 
-    def test(self) -> None:
-        print(f'test for "{self._dll_wf_name}({self._alpha if self._has_alpha else ''})" ... ', end='')
+    def test(self, win_size: int) -> None:
+        print(f'test for "{self._dll_wf_name}({
+              self._alpha if self._has_alpha else ''})" ... ', end='')
+        test_arr = (c_double * win_size)()
         # функции для получения массивов
         wf = getattr(self.dll, self._dll_wf_name)
         scipy_wf = getattr(windows, self._scipy_wf_name)
         # создание массивов
         if not self._has_alpha:
-            wf(self.test_arr, c_size_t(self.WIN_SIZE))
-            test_win = scipy_wf(self.WIN_SIZE)
+            wf(test_arr, c_size_t(win_size))
+            test_win = scipy_wf(win_size)
         else:
-            wf(self.test_arr, c_size_t(self.WIN_SIZE), c_double(self._alpha))
-            test_win = scipy_wf(self.WIN_SIZE, self._alpha)
+            wf(test_arr, c_size_t(win_size), c_double(self._alpha))
+            test_win = scipy_wf(win_size, self._alpha)
         # сравнение массивов
-        for i in range(self.WIN_SIZE):
-            xn = float(self.test_arr[i])
+        mismatches = 0
+        for i in range(win_size):
+            xn = float(test_arr[i])
             ref = float(test_win[i])
 
             if abs(xn - ref) > self.EPSILON:
-                self._mismatches += 1
+                print(f'[{i:03}]: {xn} != {ref}')
+                mismatches += 1
 
-        print(f'{'passed' if not self._mismatches else f'failed, {self._mismatches} mismatches'}')
+        print(f'{'passed' if not mismatches else f'failed, {mismatches} mismatches'}')
 
-        return self._mismatches
+        return mismatches
 
 
 if __name__ == '__main__':
@@ -62,5 +63,20 @@ if __name__ == '__main__':
         Test('wf_tukey', 'tukey', True, 0.8),
     ]
 
-    for t in TESTS:
-        t.test()
+    SIZES = [0, 1, 2, 3, 4, 7, 8, 9, 10, 16, 31, 32,33, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
+
+    tests = len(TESTS) * len(SIZES)
+    errs = 0
+    for s in SIZES:
+        print('*************************')
+        print(f'test for win size: {s}')
+        print('*************************')
+        for t in TESTS:
+            err = t.test(s)
+            if err != 0:
+                errs += 1
+
+    if errs == 0:
+        print('All tests are passed!')
+    else:
+        print(f'{tests - errs} tests are passed!, {errs} errors found!')
