@@ -72,6 +72,18 @@ void wf_parzen(WF_TYPE *win, size_t N) {
 /******************************************************************************/
 /*                             Cosine-sum windows                             */
 /******************************************************************************/
+void wf_cosine(WF_TYPE *win, size_t N) {
+    size_t n;
+
+    if(!win || !N) {
+        return;
+    }
+
+    for(n = 0; n != N; ++n) {
+        win[n] = WF_SIN((M_PI * (n + 0.5)) / N);
+    }
+}
+
 void wf_cosine_sum(WF_TYPE *win, size_t N, const double *a, size_t K) {
     int sgn;
     size_t n, k;
@@ -141,9 +153,38 @@ void wf_flattop(WF_TYPE *win, size_t N) {
     wf_cosine_sum(win, N, a, sizeof(a) / sizeof(*a));
 }
 
+void wf_barthann(WF_TYPE *win, size_t N) {
+    size_t n;
+    double fac;
+
+    if(!win || !N) {
+        return;
+    }
+
+    for(n = 0; n != N; ++n) {
+        fac = WF_ABS(n / (N - 1.0) - 0.5);
+        win[n] = 0.62 - 0.48 * fac + 0.38 * WF_COS(2.0 * M_PI * fac);
+    }
+}
+
 /******************************************************************************/
 /*                             Adjustable windows                             */
 /******************************************************************************/
+void wf_gaussian(WF_TYPE *win, size_t N, double alpha) {
+    size_t n;
+    WF_TYPE x2;
+
+    if(!win || !N) {
+        return;
+    }
+
+    for(n = 0; n != N; ++n) {
+        x2 = n - (N - 1.0) / 2.0;
+        x2 *= x2;
+        win[n] = WF_EXP(-0.5 * x2 / (alpha * alpha));
+    }
+}
+
 void wf_tukey(WF_TYPE *win, size_t N, double alpha) {
     size_t n;
 
