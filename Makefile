@@ -61,4 +61,4 @@ clean:
 		$(foreach dir,$(WORK_DIRS),$(addsuffix /*.d,$(dir)))
 
 test: $(SHARED_LIB)
-	@python pytest.py
+	@python pytest
