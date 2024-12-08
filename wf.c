@@ -2,6 +2,9 @@
 
 #include "wf.h"
 
+#define WF_MIN(x, y) ((x) < (y) ? (x) : (y))
+#define WF_MAX(x, y) ((x) > (y) ? (x) : (y))
+
 /******************************************************************************/
 /*                              B-spline windows                              */
 /******************************************************************************/
@@ -44,6 +47,25 @@ void wf_triang(WF_TYPE *win, size_t N) {
         for(n = 0; n != N; ++n) {
             win[n] = 1.0 - WF_ABS((n - (N - 1.0) / 2.0) / (N / 2.0));
         }
+    }
+}
+
+void wf_parzen(WF_TYPE *win, size_t N) {
+    size_t n;
+    WF_TYPE x, y;
+
+    if(!win || !N) {
+        return;
+    }
+
+    for(n = 0; n < N; ++n) {
+        x = WF_ABS(2.0 * n - (N - 1)) / N;
+        y = 1.0 - x;
+
+        x = 1.0 - 6.0 * x * x + 6.0 * x * x * x;
+        y = 2.0 * y * y * y;
+
+        win[n] = WF_MIN(x, y);
     }
 }
 

@@ -33,6 +33,7 @@
 void wf_rect(WF_TYPE *win, size_t N);
 void wf_bartlett(WF_TYPE *win, size_t N);
 void wf_triang(WF_TYPE *win, size_t N);
+void wf_parzen(WF_TYPE *win, size_t N);
 
 /******************************************************************************/
 /*                             Cosine-sum windows                             */
