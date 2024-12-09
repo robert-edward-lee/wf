@@ -1,34 +1,11 @@
 #ifndef H_WF
 #define H_WF
 
-#define _GNU_SOURCE
-#define _USE_MATH_DEFINES
-
-#include <math.h>
 #include <stddef.h>
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif /* M_PI */
 
 #ifndef WF_TYPE
 #define WF_TYPE double
 #endif /* WF_TYPE */
-#ifndef WF_FMT
-#define WF_FMT ".05f"
-#endif /* WF_FMT */
-#ifndef WF_COS
-#define WF_COS cos
-#endif /* WF_COS */
-#ifndef WF_SIN
-#define WF_SIN sin
-#endif /* WF_SIN */
-#ifndef WF_ABS
-#define WF_ABS fabs
-#endif /* WF_ABS */
-#ifndef WF_EXP
-#define WF_EXP exp
-#endif /* WF_EXP */
 
 #ifdef __cplusplus
 extern "C" {

@@ -131,4 +131,3 @@ if __name__ == '__main__':
         print('All tests are passed!')
     else:
         print(f'{tests - errs} tests are passed!, {errs} errors found!')
-

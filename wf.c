@@ -1,32 +1,57 @@
+#include <math.h>
 #include <stdio.h>
 
 #include "wf.h"
+
+#ifndef WF_PI
+#define WF_PI 3.14159265358979323846264338327950288
+#define WF_2PI 6.28318530717958647692528676655900576
+#endif /* WF_PI */
+
+#ifndef WF_FMT
+#define WF_FMT ".05f"
+#endif /* WF_FMT */
+#ifndef WF_COS
+#define WF_COS cos
+#endif /* WF_COS */
+#ifndef WF_SIN
+#define WF_SIN sin
+#endif /* WF_SIN */
+#ifndef WF_ABS
+#define WF_ABS fabs
+#endif /* WF_ABS */
+#ifndef WF_EXP
+#define WF_EXP exp
+#endif /* WF_EXP */
+#ifndef WF_SQRT
+#define WF_SQRT sqrt
+#endif /* WF_SQRT */
 
 #define WF_COUNTOF(a) (sizeof(a) / sizeof(*(a)))
 
 #define WF_MIN(x, y) ((x) < (y) ? (x) : (y))
 #define WF_MAX(x, y) ((x) > (y) ? (x) : (y))
 
-#define WF_SINC(x) ((x != 0.0) ? WF_SIN(M_PI * (x)) / (M_PI * (x)) : 1.0)
+#define WF_SINC(x) ((x != 0.0) ? WF_SIN(WF_PI * (x)) / (WF_PI * (x)) : 1.0)
 
+#ifndef WF_BESSEL_I0
 /**
  * @brief Вычисление ряда Чебышёва
  *
  * @note Оригинал взят отсюда: https://www.netlib.org/cephes
  */
-static double chbevl(double x, const double *coeff, size_t n) {
+static double wf_chbevl(double x, const double *coeff, size_t N) {
+    size_t n;
     double b0, b1, b2;
-    size_t i;
 
     b0 = *coeff++;
     b1 = 0.0;
-    i = n - 1;
-
+    n = N - 1;
     do {
         b2 = b1;
         b1 = b0;
         b0 = x * b1 - b2 + *coeff++;
-    } while(--i);
+    } while(--n);
 
     return 0.5 * (b0 - b2);
 }
@@ -35,7 +60,7 @@ static double chbevl(double x, const double *coeff, size_t n) {
  *
  * @note Оригинал взят отсюда: https://www.netlib.org/cephes
  */
-static double i0(double x) {
+static double wf_i0(double x) {
     static const double A[] = {
         -4.41534164647933937950e-18, 3.33079451882223809783e-17,  -2.43127984654795469359e-16,
         1.71539128555513303061e-15,  -1.16853328779934516808e-14, 7.67618549860493561688e-14,
@@ -64,11 +89,13 @@ static double i0(double x) {
         x = -x;
     }
     if(x <= 8.0) {
-        return exp(x) * chbevl((x / 2.0) - 2.0, A, WF_COUNTOF(A));
+        return WF_EXP(x) * wf_chbevl((x / 2.0) - 2.0, A, WF_COUNTOF(A));
     }
 
-    return exp(x) * chbevl(32.0 / x - 2.0, B, WF_COUNTOF(B)) / sqrt(x);
+    return WF_EXP(x) * wf_chbevl(32.0 / x - 2.0, B, WF_COUNTOF(B)) / WF_SQRT(x);
 }
+#define WF_BESSEL_I0 wf_i0
+#endif /* WF_BESSEL_I0 */
 
 /******************************************************************************/
 /*                              B-spline windows                              */
@@ -145,7 +172,7 @@ void wf_cosine(WF_TYPE *win, size_t N) {
     }
 
     for(n = 0; n != N; ++n) {
-        win[n] = WF_SIN((M_PI * (n + 0.5)) / N);
+        win[n] = WF_SIN((WF_PI * (n + 0.5)) / N);
     }
 }
 
@@ -159,7 +186,7 @@ void wf_bohman(WF_TYPE *win, size_t N) {
 
     for(n = 0; n != N; ++n) {
         fac = fabs(2.0 * n / (N - 1.0) - 1.0);
-        win[n] = (1.0 - fac) * WF_COS(M_PI * fac) + (1.0 / M_PI) * WF_SIN(M_PI * fac);
+        win[n] = (1.0 - fac) * WF_COS(WF_PI * fac) + (1.0 / WF_PI) * WF_SIN(WF_PI * fac);
     }
 }
 
@@ -176,7 +203,7 @@ void wf_cosine_sum(WF_TYPE *win, size_t N, const double *a, size_t K) {
         sgn = 1;
         for(k = 1; k != K; ++k) {
             sgn *= -1;
-            win[n] += sgn * a[k] * WF_COS((2.0 * M_PI * k * n) / (N - 1.0));
+            win[n] += sgn * a[k] * WF_COS((WF_2PI * k * n) / (N - 1.0));
         }
     }
 }
@@ -265,7 +292,7 @@ void wf_tukey(WF_TYPE *win, size_t N, double alpha) {
     }
 
     for(n = 0; n != (size_t)(alpha * (N - 1.0) / 2.0 + 1.0); ++n) {
-        win[n] = (1.0 - WF_COS((2.0 * M_PI * n) / (alpha * (N - 1.0)))) / 2.0;
+        win[n] = (1.0 - WF_COS((WF_2PI * n) / (alpha * (N - 1.0)))) / 2.0;
     }
     for(; n != (size_t)((N - 1.0) / 2.0 + 1.0); ++n) {
         win[n] = 1.0;
@@ -285,28 +312,27 @@ void wf_kaiser(WF_TYPE *win, size_t N, double beta) {
 
     for(n = 0; n != N; ++n) {
         fac = 2.0 * n / (N - 1.0) - 1.0;
-        win[n] = i0(beta * sqrt(1.0 - fac * fac)) / i0(beta);
+        win[n] = WF_BESSEL_I0(beta * WF_SQRT(1.0 - fac * fac)) / WF_BESSEL_I0(beta);
     }
 }
 
 void wf_kaiser_bessel_derived(WF_TYPE *win, size_t N, double beta) {
-    size_t n, tmp;
+    size_t n;
 
     if(!win || !N) {
         return;
     }
 
-    tmp = N / 2 + 1;
-    wf_kaiser(win, tmp, beta);
+    wf_kaiser(win, N / 2 + 1, beta);
 
-    for(n = 1; n != tmp; ++n) {
+    for(n = 1; n != N / 2 + 1; ++n) {
         win[n] = win[n - 1] + win[n];
     }
-    for(n = 0; n != tmp; ++n) {
-        win[n] = sqrt(win[n] / win[tmp - 1]);
+    for(n = 0; n != N / 2 + 1; ++n) {
+        win[n] = WF_SQRT(win[n] / win[N / 2]);
     }
 
-    for(n = 0; n != tmp; ++n) {
+    for(n = 0; n != N / 2 + 1; ++n) {
         win[N - 1 - n] = win[n];
     }
 }
@@ -336,7 +362,7 @@ void wf_barthann(WF_TYPE *win, size_t N) {
 
     for(n = 0; n != N; ++n) {
         fac = fabs(n / (N - 1.0) - 0.5);
-        win[n] = 0.62 - 0.48 * fac + 0.38 * WF_COS(2.0 * M_PI * fac);
+        win[n] = 0.62 - 0.48 * fac + 0.38 * WF_COS(WF_2PI * fac);
     }
 }
 
