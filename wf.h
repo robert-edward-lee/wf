@@ -46,6 +46,7 @@ void wf_parzen(WF_TYPE *win, size_t N);
 /*                             Cosine-sum windows                             */
 /******************************************************************************/
 void wf_cosine(WF_TYPE *win, size_t N);
+void wf_bohman(WF_TYPE *win, size_t N);
 void wf_cosine_sum(WF_TYPE *win, size_t N, const double *a, size_t K);
 void wf_general_hamming(WF_TYPE *win, size_t N, double alpha);
 void wf_hamming(WF_TYPE *win, size_t N);
@@ -61,11 +62,17 @@ void wf_flattop(WF_TYPE *win, size_t N);
 /******************************************************************************/
 void wf_gaussian(WF_TYPE *win, size_t N, double alpha);
 void wf_tukey(WF_TYPE *win, size_t N, double alpha);
+void wf_poisson(WF_TYPE *win, size_t N, double alpha);
 
 /******************************************************************************/
 /*                               Hybrid windows                               */
 /******************************************************************************/
 void wf_barthann(WF_TYPE *win, size_t N);
+
+/******************************************************************************/
+/*                                Other windows                               */
+/******************************************************************************/
+void wf_lanczos(WF_TYPE *win, size_t N);
 
 /******************************************************************************/
 /*                                   Utils                                    */

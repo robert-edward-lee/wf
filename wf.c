@@ -5,6 +5,8 @@
 #define WF_MIN(x, y) ((x) < (y) ? (x) : (y))
 #define WF_MAX(x, y) ((x) > (y) ? (x) : (y))
 
+#define WF_SINC(x) ((x != 0.0) ? WF_SIN(M_PI * (x)) / (M_PI * (x)) : 1.0)
+
 /******************************************************************************/
 /*                              B-spline windows                              */
 /******************************************************************************/
@@ -84,6 +86,20 @@ void wf_cosine(WF_TYPE *win, size_t N) {
     }
 }
 
+void wf_bohman(WF_TYPE *win, size_t N) {
+    size_t n;
+    double fac;
+
+    if(!win || !N) {
+        return;
+    }
+
+    for(n = 0; n != N; ++n) {
+        fac = fabs(2.0 * n / (N - 1.0) - 1.0);
+        win[n] = (1.0 - fac) * WF_COS(M_PI * fac) + (1.0 / M_PI) * WF_SIN(M_PI * fac);
+    }
+}
+
 void wf_cosine_sum(WF_TYPE *win, size_t N, const double *a, size_t K) {
     int sgn;
     size_t n, k;
@@ -158,15 +174,14 @@ void wf_flattop(WF_TYPE *win, size_t N) {
 /******************************************************************************/
 void wf_gaussian(WF_TYPE *win, size_t N, double alpha) {
     size_t n;
-    WF_TYPE x2;
+    double x2;
 
     if(!win || !N) {
         return;
     }
 
     for(n = 0; n != N; ++n) {
-        x2 = n - (N - 1.0) / 2.0;
-        x2 *= x2;
+        x2 = (n - (N - 1.0) / 2.0) * (n - (N - 1.0) / 2.0);
         win[n] = WF_EXP(-0.5 * x2 / (alpha * alpha));
     }
 }
@@ -197,6 +212,18 @@ void wf_tukey(WF_TYPE *win, size_t N, double alpha) {
     }
 }
 
+void wf_poisson(WF_TYPE *win, size_t N, double alpha) {
+    size_t n;
+
+    if(!win || !N) {
+        return;
+    }
+
+    for(n = 0; n != N; ++n) {
+        win[n] = WF_EXP(-fabs(n - (N - 1.0) / 2.0) / alpha);
+    }
+}
+
 /******************************************************************************/
 /*                               Hybrid windows                               */
 /******************************************************************************/
@@ -209,8 +236,23 @@ void wf_barthann(WF_TYPE *win, size_t N) {
     }
 
     for(n = 0; n != N; ++n) {
-        fac = WF_ABS(n / (N - 1.0) - 0.5);
+        fac = fabs(n / (N - 1.0) - 0.5);
         win[n] = 0.62 - 0.48 * fac + 0.38 * WF_COS(2.0 * M_PI * fac);
+    }
+}
+
+/******************************************************************************/
+/*                                Other windows                               */
+/******************************************************************************/
+void wf_lanczos(WF_TYPE *win, size_t N) {
+    size_t n;
+
+    if(!win || !N) {
+        return;
+    }
+
+    for(n = 0; n != N; ++n) {
+        win[n] = WF_SINC(2.0 * n / (N - 1.0) - 1.0);
     }
 }
 

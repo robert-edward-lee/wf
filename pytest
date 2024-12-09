@@ -27,7 +27,10 @@ class Test(object):
             test_win = scipy_wf(win_size)
         else:
             wf(test_arr, c_size_t(win_size), c_double(self._alpha))
-            test_win = scipy_wf(win_size, self._alpha)
+            if self._scipy_wf_name == 'exponential':
+                test_win = scipy_wf(win_size, None, self._alpha)
+            else:
+                test_win = scipy_wf(win_size, self._alpha)
         # сравнение массивов
         mismatches = 0
         for i in range(win_size):
@@ -51,6 +54,7 @@ if __name__ == '__main__':
         Test('wf_parzen', 'parzen'),
 
         Test('wf_cosine', 'cosine'),
+        Test('wf_bohman', 'bohman'),
         Test('wf_hann', 'hann'),
         Test('wf_hamming', 'hamming'),
         Test('wf_general_hamming', 'general_hamming', True, 0.3),
@@ -67,8 +71,13 @@ if __name__ == '__main__':
         Test('wf_tukey', 'tukey', True, 0.3),
         Test('wf_tukey', 'tukey', True, 0.5),
         Test('wf_tukey', 'tukey', True, 0.8),
+        Test('wf_poisson', 'exponential', True, 0.3),
+        Test('wf_poisson', 'exponential', True, 0.5),
+        Test('wf_poisson', 'exponential', True, 0.8),
 
         Test('wf_barthann', 'barthann'),
+
+        Test('wf_lanczos', 'lanczos'),
     ]
 
     SIZES = [
