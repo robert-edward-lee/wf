@@ -63,6 +63,7 @@ void wf_flattop(WF_TYPE *win, size_t N);
 void wf_gaussian(WF_TYPE *win, size_t N, double sigma);
 void wf_tukey(WF_TYPE *win, size_t N, double alpha);
 void wf_kaiser(WF_TYPE *win, size_t N, double beta);
+void wf_kaiser_bessel_derived(WF_TYPE *win, size_t N, double beta);
 void wf_poisson(WF_TYPE *win, size_t N, double tau);
 
 /******************************************************************************/

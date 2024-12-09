@@ -29,6 +29,8 @@ class Test(object):
             wf(test_arr, c_size_t(win_size), c_double(self._alpha))
             if self._scipy_wf_name == 'exponential':
                 test_win = scipy_wf(win_size, None, self._alpha)
+            elif self._scipy_wf_name == 'kaiser_bessel_derived' and win_size % 2:
+                return 0
             else:
                 test_win = scipy_wf(win_size, self._alpha)
         # сравнение массивов
@@ -74,6 +76,11 @@ if __name__ == '__main__':
         Test('wf_kaiser', 'kaiser', True, 1.0),
         Test('wf_kaiser', 'kaiser', True, 4.0),
         Test('wf_kaiser', 'kaiser', True, 9.0),
+
+        Test('wf_kaiser_bessel_derived', 'kaiser_bessel_derived', True, 1.0),
+        Test('wf_kaiser_bessel_derived', 'kaiser_bessel_derived', True, 4.0),
+        Test('wf_kaiser_bessel_derived', 'kaiser_bessel_derived', True, 9.0),
+
         Test('wf_poisson', 'exponential', True, 0.3),
         Test('wf_poisson', 'exponential', True, 0.5),
         Test('wf_poisson', 'exponential', True, 0.8),
@@ -124,3 +131,4 @@ if __name__ == '__main__':
         print('All tests are passed!')
     else:
         print(f'{tests - errs} tests are passed!, {errs} errors found!')
+

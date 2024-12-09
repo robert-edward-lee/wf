@@ -289,6 +289,28 @@ void wf_kaiser(WF_TYPE *win, size_t N, double beta) {
     }
 }
 
+void wf_kaiser_bessel_derived(WF_TYPE *win, size_t N, double beta) {
+    size_t n, tmp;
+
+    if(!win || !N) {
+        return;
+    }
+
+    tmp = N / 2 + 1;
+    wf_kaiser(win, tmp, beta);
+
+    for(n = 1; n != tmp; ++n) {
+        win[n] = win[n - 1] + win[n];
+    }
+    for(n = 0; n != tmp; ++n) {
+        win[n] = sqrt(win[n] / win[tmp - 1]);
+    }
+
+    for(n = 0; n != tmp; ++n) {
+        win[N - 1 - n] = win[n];
+    }
+}
+
 void wf_poisson(WF_TYPE *win, size_t N, double tau) {
     size_t n;
 
