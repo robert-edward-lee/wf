@@ -55,13 +55,17 @@ void wf_blackman(WF_TYPE *win, size_t N);
 void wf_nuttall(WF_TYPE *win, size_t N);
 void wf_blackmanharris(WF_TYPE *win, size_t N);
 void wf_flattop(WF_TYPE *win, size_t N);
-void wf_barthann(WF_TYPE *win, size_t N);
 
 /******************************************************************************/
 /*                             Adjustable windows                             */
 /******************************************************************************/
 void wf_gaussian(WF_TYPE *win, size_t N, double alpha);
 void wf_tukey(WF_TYPE *win, size_t N, double alpha);
+
+/******************************************************************************/
+/*                               Hybrid windows                               */
+/******************************************************************************/
+void wf_barthann(WF_TYPE *win, size_t N);
 
 /******************************************************************************/
 /*                                   Utils                                    */

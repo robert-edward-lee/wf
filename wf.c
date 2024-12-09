@@ -153,20 +153,6 @@ void wf_flattop(WF_TYPE *win, size_t N) {
     wf_cosine_sum(win, N, a, sizeof(a) / sizeof(*a));
 }
 
-void wf_barthann(WF_TYPE *win, size_t N) {
-    size_t n;
-    double fac;
-
-    if(!win || !N) {
-        return;
-    }
-
-    for(n = 0; n != N; ++n) {
-        fac = WF_ABS(n / (N - 1.0) - 0.5);
-        win[n] = 0.62 - 0.48 * fac + 0.38 * WF_COS(2.0 * M_PI * fac);
-    }
-}
-
 /******************************************************************************/
 /*                             Adjustable windows                             */
 /******************************************************************************/
@@ -208,6 +194,23 @@ void wf_tukey(WF_TYPE *win, size_t N, double alpha) {
     }
     for(; n != N; ++n) {
         win[n] = win[N - n - 1];
+    }
+}
+
+/******************************************************************************/
+/*                               Hybrid windows                               */
+/******************************************************************************/
+void wf_barthann(WF_TYPE *win, size_t N) {
+    size_t n;
+    double fac;
+
+    if(!win || !N) {
+        return;
+    }
+
+    for(n = 0; n != N; ++n) {
+        fac = WF_ABS(n / (N - 1.0) - 0.5);
+        win[n] = 0.62 - 0.48 * fac + 0.38 * WF_COS(2.0 * M_PI * fac);
     }
 }
 

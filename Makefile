@@ -1,23 +1,18 @@
-################################################################################
-#                              НАСТРОЙКА ПРОЕКТА                               #
-################################################################################
 PROJECT_NAME = wf
 
 WORK_DIRS = .
-BUILD_DIR = .
-SOURCE_DIRS = .
-SOURCES = $(wildcard $(SOURCE_DIRS)/*.c)
-OBJECTS = $(addprefix $(BUILD_DIR)/,$(notdir $(patsubst %.c,%.o,$(SOURCES))))
-DEPENDS = $(patsubst %.o,%.d,$(OBJECTS))
--include $(DEPENDS)
 
-SHARED_LIB = $(BUILD_DIR)/lib$(PROJECT_NAME).dll
-IMP_LIB = $(BUILD_DIR)/lib$(PROJECT_NAME).dll.a
+INCLUDE_DIRS =
+DEFINES =
+OPT_LEVEL = 3
+
+SHARED_LIB = lib$(PROJECT_NAME).dll
+IMP_LIB = lib$(PROJECT_NAME).dll.a
 
 CC = gcc
 LD = $(CC)
 LDFLAGS = -shared -Wl,--out-implib,$(IMP_LIB)
-STRIP = $(TOOLCHAIN_PREFIX)strip
+STRIP = strip
 
 INC_FLAGS = $(addprefix -I,$(INCLUDE_DIRS))
 DEF_FLAGS = $(addprefix -D,$(DEFINES))
@@ -30,14 +25,16 @@ CFLAGS = \
 	$(INC_FLAGS) \
 	$(DEF_FLAGS) \
 	$(OPT_FLAGS) \
-	$(WARN_FLAGS) \
 	$(STDC_FLAGS) \
-	$(EXTRA_FLAGS) \
-	$(DEPEND_FLAGS)
+	$(WARN_FLAGS) \
+	$(DEPEND_FLAGS) \
+	$(EXTRA_FLAGS)
 
 all: test
 
-$(SHARED_LIB): $(OBJECTS)
+shared: $(SHARED_LIB)
+
+$(SHARED_LIB): $(PROJECT_NAME).o
 	@echo '  LD      ' $@
 	@$(LD) $(LDFLAGS) -o $@ $^
 	@echo '  STRIP   ' $@
@@ -45,7 +42,7 @@ $(SHARED_LIB): $(OBJECTS)
 
 $(IMP_LIB): $(SHARED_LIB)
 
-$(BUILD_DIR)/%.o: %.c
+$(PROJECT_NAME).o: $(PROJECT_NAME).c
 	@echo '  CC      ' $@
 	@$(CC) -c $(CFLAGS) -o $@ $<
 
@@ -60,5 +57,7 @@ clean:
 		$(foreach dir,$(WORK_DIRS),$(addsuffix /*.tds,$(dir))) \
 		$(foreach dir,$(WORK_DIRS),$(addsuffix /*.d,$(dir)))
 
-test: $(SHARED_LIB)
+test: shared
 	@python pytest
+
+-include $(PROJECT_NAME).d

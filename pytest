@@ -60,7 +60,6 @@ if __name__ == '__main__':
         Test('wf_nuttall', 'nuttall'),
         Test('wf_blackmanharris', 'blackmanharris'),
         Test('wf_flattop', 'flattop'),
-        Test('wf_barthann', 'barthann'),
 
         Test('wf_gaussian', 'gaussian', True, 0.3),
         Test('wf_gaussian', 'gaussian', True, 0.5),
@@ -68,6 +67,8 @@ if __name__ == '__main__':
         Test('wf_tukey', 'tukey', True, 0.3),
         Test('wf_tukey', 'tukey', True, 0.5),
         Test('wf_tukey', 'tukey', True, 0.8),
+
+        Test('wf_barthann', 'barthann'),
     ]
 
     SIZES = [
