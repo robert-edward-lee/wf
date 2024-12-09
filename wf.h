@@ -60,9 +60,10 @@ void wf_flattop(WF_TYPE *win, size_t N);
 /******************************************************************************/
 /*                             Adjustable windows                             */
 /******************************************************************************/
-void wf_gaussian(WF_TYPE *win, size_t N, double alpha);
+void wf_gaussian(WF_TYPE *win, size_t N, double sigma);
 void wf_tukey(WF_TYPE *win, size_t N, double alpha);
-void wf_poisson(WF_TYPE *win, size_t N, double alpha);
+void wf_kaiser(WF_TYPE *win, size_t N, double beta);
+void wf_poisson(WF_TYPE *win, size_t N, double tau);
 
 /******************************************************************************/
 /*                               Hybrid windows                               */
