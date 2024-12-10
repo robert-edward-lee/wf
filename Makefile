@@ -14,9 +14,12 @@ LD = $(CC)
 LDFLAGS = -shared -Wl,--out-implib,$(IMP_LIB)
 STRIP = strip
 
+LIBS = m
+
 INC_FLAGS = $(addprefix -I,$(INCLUDE_DIRS))
 DEF_FLAGS = $(addprefix -D,$(DEFINES))
 OPT_FLAGS = $(addprefix -O,$(OPT_LEVEL))
+LDLIBS = $(addprefix -l,$(LIBS))
 STDC_FLAGS = -ansi
 WARN_FLAGS = -Wall -Wextra -pedantic
 DEPEND_FLAGS = -MMD -MP
@@ -36,7 +39,7 @@ shared: $(SHARED_LIB)
 
 $(SHARED_LIB): $(PROJECT_NAME).o
 	@echo '  LD      ' $@
-	@$(LD) $(LDFLAGS) -o $@ $^
+	@$(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 	@echo '  STRIP   ' $@
 	@$(STRIP) $@
 
@@ -55,7 +58,7 @@ clean:
 		$(foreach dir,$(WORK_DIRS),$(addsuffix /*.o,$(dir))) \
 		$(foreach dir,$(WORK_DIRS),$(addsuffix /*.obj,$(dir))) \
 		$(foreach dir,$(WORK_DIRS),$(addsuffix /*.tds,$(dir))) \
-		$(foreach dir,$(WORK_DIRS),$(addsuffix /*.d,$(dir)))
+        $(foreach dir,$(WORK_DIRS),$(addsuffix /*.s,$(dir)))
 
 test: shared
 	@python pytest

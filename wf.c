@@ -1,5 +1,7 @@
+#include <complex.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "wf.h"
 
@@ -14,6 +16,18 @@
 #ifndef WF_COS
 #define WF_COS cos
 #endif /* WF_COS */
+#ifndef WF_ACOS
+#define WF_ACOS acos
+#endif /* WF_ACOS */
+#ifndef WF_COSH
+#define WF_COSH cosh
+#endif /* WF_COSH */
+#ifndef WF_ACOSH
+#if defined(__STRICT_ANSI__)
+extern double acosh(double);
+#endif
+#define WF_ACOSH acosh
+#endif /* WF_ACOSH */
 #ifndef WF_SIN
 #define WF_SIN sin
 #endif /* WF_SIN */
@@ -26,6 +40,9 @@
 #ifndef WF_SQRT
 #define WF_SQRT sqrt
 #endif /* WF_SQRT */
+#ifndef WF_POW
+#define WF_POW pow
+#endif /* WF_POW */
 
 #define WF_COUNTOF(a) (sizeof(a) / sizeof(*(a)))
 
@@ -96,6 +113,158 @@ static double wf_i0(double x) {
 }
 #define WF_BESSEL_I0 wf_i0
 #endif /* WF_BESSEL_I0 */
+
+static unsigned bitreverse(unsigned n, unsigned size) {
+    unsigned ri = 0;
+    while(size != 1) {
+        ri *= 2;
+        ri |= (n & 1);
+        n >>= 1;
+        size /= 2;
+    }
+    return ri;
+}
+/**
+ * @brief In place complex radix-2 FFT.
+ */
+static void fft_radix2(complex double *z, unsigned size) {
+    unsigned i, j;
+    unsigned num_subffts, size_subfft;
+    complex double *ww;
+
+    /* we start with (size / 2) FFTs of 2 base elements. */
+    num_subffts = size / 2;
+    size_subfft = 2;
+
+    ww = malloc(size / 2 * sizeof(*ww));
+    if(!ww) {
+        return;
+    }
+
+    for(i = 0; i < size / 2; ++i) {
+        ww[i] = cexp(-2.0 * WF_PI * I * i / size);
+    }
+    /* Permute the input elements (bit-reversal of indices). */
+    for(i = 0; i < size; ++i) {
+        const unsigned ri = bitreverse(i, size);
+        if(i < ri) {
+            const complex double temp = z[i];
+            z[i] = z[ri];
+            z[ri] = temp;
+        }
+    }
+    /* Perform FFTs */
+    while(num_subffts != 0) {
+        for(i = 0; i < num_subffts; ++i) {
+            unsigned subfft_offset = size_subfft * i;
+
+            for(j = 0; j < size_subfft / 2; ++j) {
+                unsigned target1 = subfft_offset + j;
+                unsigned target2 = subfft_offset + j + size_subfft / 2;
+
+                unsigned left = target1;
+                unsigned right = target2;
+
+                const unsigned ww_index = (j * num_subffts);
+
+                const complex double w = ww[ww_index];
+
+                const complex double zleft = z[left];
+                const complex double w_zright = w * z[right];
+
+                z[target1] = zleft + w_zright;
+                z[target2] = zleft - w_zright;
+            }
+        }
+
+        num_subffts /= 2;
+        size_subfft *= 2;
+    }
+}
+
+static void czt(complex double *z, unsigned n, complex double *ztrans, unsigned m, complex double w, complex double a) {
+    unsigned k;
+
+    complex double *zz, *w2;
+
+    /* Determine next-biggest power-of-two that fits the (n + m - 1) entries we need. */
+    unsigned fft_size = 1;
+    while(fft_size < n + m - 1) {
+        fft_size *= 2;
+    }
+
+    zz = malloc(fft_size * sizeof(*zz));
+    if(!zz) {
+        return;
+    }
+    w2 = malloc(fft_size * sizeof(*w2));
+    if(!w2) {
+        free(zz);
+        return;
+    }
+
+    /* Initialize zz */
+    for(k = 0; k < fft_size; ++k) {
+        if(k < n) {
+            const complex double w1 = cpow(w, 0.5 * k * k) / cpow(a, k);
+            zz[k] = w1 * z[k];
+        } else {
+            zz[k] = 0;
+        }
+    }
+    fft_radix2(zz, fft_size);
+
+    for(k = 0; k < fft_size; ++k) {
+        if(k < n + m - 1) {
+            const int kshift = k - (n - 1);
+
+            w2[k] = cpow(w, -0.5 * kshift * kshift);
+        } else {
+            w2[k] = 0;
+        }
+    }
+    fft_radix2(w2, fft_size);
+
+    for(k = 0; k < fft_size; ++k) {
+        zz[k] *= w2[k];
+    }
+    fft_radix2(zz, fft_size);
+
+    /* Make an inverse FFT from the forward FFT.
+        - scale all elements by 1 / fft_size;
+        - reverse elements 1 .. (fft_size - 1).
+    */
+    for(k = 0; k < fft_size; ++k) {
+        zz[k] /= fft_size;
+    }
+    for(k = 1; k < fft_size - k; ++k) {
+        const unsigned kswap = fft_size - k;
+
+        const complex double temp = zz[k];
+        zz[k] = zz[kswap];
+        zz[kswap] = temp;
+    }
+
+    for(k = 0; k < m; ++k) {
+        const complex double w3 = cpow(w, (0.5 * k * k));
+        ztrans[k] = w3 * zz[n - 1 + k];
+    }
+}
+
+static void czt_fft(complex double *z, unsigned size) {
+    if(size == 0) {
+        return;
+    }
+
+    if(__builtin_popcount(size) == 1) {
+        fft_radix2(z, size);
+    } else {
+        const complex double w = cexp(-2.0 * WF_PI * I / size);
+        const complex double a = 1;
+
+        czt(z, size, z, size, w, a);
+    }
+}
 
 /******************************************************************************/
 /*                              B-spline windows                              */
@@ -334,6 +503,86 @@ void wf_kaiser_bessel_derived(WF_TYPE *win, size_t N, double beta) {
 
     for(n = 0; n != N / 2 + 1; ++n) {
         win[N - 1 - n] = win[n];
+    }
+}
+
+void wf_chebyshev(double *win, size_t N, double alpha) {
+    unsigned i, h;
+    double maxw;
+    const unsigned order = N - 1;
+    const double amplification = WF_POW(10.0, WF_ABS(alpha) / 20.0);
+    const double beta = WF_COSH(WF_ACOSH(amplification) / order);
+
+    complex double *p;
+
+    p = malloc(N * sizeof(*p));
+    if(!p) {
+        return;
+    }
+
+    if(N % 2) {
+        for(i = 0; i < N; ++i) {
+            const double x = beta * WF_COS(WF_PI * i / N);
+
+            if(x > 1.0) {
+                p[i] = WF_COSH(order * WF_ACOSH(x));
+            } else if(x < -1.0) {
+                p[i] = WF_COSH(order * WF_ACOSH(-x));
+            } else {
+                p[i] = WF_COS(order * WF_ACOS(x));
+            }
+        }
+
+        czt_fft(p, N);
+
+        /* Example: n = 11
+            w[0] w[1] w[2] w[3] w[4] w[5] w[6] w[7] w[8] w[9] w[10]
+                                    =
+            p[5] p[4] p[3] p[2] p[1] p[0] p[1] p[2] p[3] p[4] p[5]
+        */
+        h = (N - 1) / 2;
+        for(i = 0; i < N; ++i) {
+            const unsigned j = (i <= h) ? (h - i) : (i - h);
+
+            win[i] = creal(p[j]);
+        }
+    } else {
+        for(i = 0; i < N; ++i) {
+            const double x = beta * WF_COS(WF_PI * i / N);
+
+            const complex double z = cexp(WF_PI * I * i / N);
+
+            if(x > 1) {
+                p[i] = z * WF_COSH(order * WF_ACOSH(x));
+            } else if(x < -1) {
+                p[i] = -z * WF_COSH(order * WF_ACOSH(-x));
+            } else {
+                p[i] = z * WF_COS(order * WF_ACOS(x));
+            }
+        }
+
+        czt_fft(p, N);
+
+        /* Example: n = 10
+            w[0] w[1] w[2] w[3] w[4] w[5] w[6] w[7] w[8] w[9]
+                                    =
+            p[5] p[4] p[3] p[2] p[1] p[1] p[2] p[3] p[4] p[5]
+        */
+        h = N / 2;
+        for(i = 0; i < N; ++i) {
+            const unsigned j = (i < h) ? (h - i) : (i - h + 1);
+
+            win[i] = creal(p[j]);
+        }
+    }
+
+    maxw = win[0];
+    for(i = 1; i < N; ++i) {
+        maxw = WF_MAX(maxw, win[i]);
+    }
+
+    for(i = 0; i < N; ++i) {
+        win[i] /= maxw;
     }
 }
 

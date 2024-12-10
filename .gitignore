@@ -8,4 +8,5 @@
 *.o
 *.obj
 *.out
+*.s
 *.tds
