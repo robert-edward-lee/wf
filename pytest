@@ -39,10 +39,10 @@ class Test(object):
         scipy_wf = getattr(windows, self._scipy_wf_name)
         # создание массивов
         if not self._has_alpha:
-            wf(test_arr, c_size_t(win_size))
+            wf(pointer(test_arr), c_size_t(win_size))
             test_win = scipy_wf(win_size)
         else:
-            wf(test_arr, c_size_t(win_size), c_double(self._alpha))
+            wf(pointer(test_arr), c_size_t(win_size), c_double(self._alpha))
             if self._scipy_wf_name == 'exponential':
                 test_win = scipy_wf(win_size, None, self._alpha)
             elif self._scipy_wf_name == 'kaiser_bessel_derived' and win_size % 2:

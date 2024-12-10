@@ -44,12 +44,43 @@ extern double acosh(double);
 #define WF_POW pow
 #endif /* WF_POW */
 
+/**
+ * @brief Нормированная функция sinc(x) = sin(pi * x) / (pi * x)
+ */
+#define WF_SINC(x) ((x != 0.0) ? WF_SIN(WF_PI * (x)) / (WF_PI * (x)) : 1.0)
+
 #define WF_COUNTOF(a) (sizeof(a) / sizeof(*(a)))
 
 #define WF_MIN(x, y) ((x) < (y) ? (x) : (y))
 #define WF_MAX(x, y) ((x) > (y) ? (x) : (y))
 
-#define WF_SINC(x) ((x != 0.0) ? WF_SIN(WF_PI * (x)) / (WF_PI * (x)) : 1.0)
+#define WF_IS_POW_OF2(x) ((x) && !((x) & ((x) - 1)))
+
+#if defined(__GNUC__)
+#define WF_SWAP(a, b) \
+    do { \
+        register __auto_type swap_tmp_ = (a); \
+        (a) = (b); \
+        (b) = swap_tmp_; \
+    } while(0)
+#else
+#define WF_SWAP(a, b) \
+    do { \
+        register __typeof__(a) swap_tmp_ = (a); \
+        (a) = (b); \
+        (b) = swap_tmp_; \
+    } while(0)
+#endif
+
+
+/**
+ * @param ri Предыдущий инверсный индекс
+ * @param i Предыдущий прямой индекс
+ * @param size Количество индексов, должно быть степенью двойки
+ * @return Текущий инверсный индекс
+ * @brief Увеличение обращённого целого числа
+ */
+#define WF_INCR_REV(ri, i, size) ((ri) = (ri) ^ ((size) - (((size) / 2) / (~(i) & ((i) + 1)))))
 
 #ifndef WF_BESSEL_I0
 /**
@@ -111,24 +142,23 @@ static double wf_i0(double x) {
 
     return WF_EXP(x) * wf_chbevl(32.0 / x - 2.0, B, WF_COUNTOF(B)) / WF_SQRT(x);
 }
+/**
+ * @brief Модифицированная функция Бесселя нулевого порядка
+ */
 #define WF_BESSEL_I0 wf_i0
 #endif /* WF_BESSEL_I0 */
 
-static unsigned bitreverse(unsigned n, unsigned size) {
-    unsigned ri = 0;
-    while(size != 1) {
-        ri *= 2;
-        ri |= (n & 1);
-        n >>= 1;
-        size /= 2;
-    }
-    return ri;
-}
 /**
  * @brief In place complex radix-2 FFT.
  */
-static void fft_radix2(complex double *z, unsigned size) {
-    unsigned i, j;
+
+/**
+ * @param z
+ * @param size
+ * @brief
+ */
+static void wf_fft_radix2(complex double *z, unsigned size) {
+    unsigned i, j, ri;
     unsigned num_subffts, size_subfft;
     complex double *ww;
 
@@ -142,15 +172,12 @@ static void fft_radix2(complex double *z, unsigned size) {
     }
 
     for(i = 0; i < size / 2; ++i) {
-        ww[i] = cexp(-2.0 * WF_PI * I * i / size);
+        ww[i] = cexp(-WF_2PI * I * i / size);
     }
     /* Permute the input elements (bit-reversal of indices). */
-    for(i = 0; i < size; ++i) {
-        const unsigned ri = bitreverse(i, size);
+    for(i = 0, ri = 0; i < size; WF_INCR_REV(ri, i, size), ++i) {
         if(i < ri) {
-            const complex double temp = z[i];
-            z[i] = z[ri];
-            z[ri] = temp;
+            WF_SWAP(z[i], z[ri]);
         }
     }
     /* Perform FFTs */
@@ -182,17 +209,28 @@ static void fft_radix2(complex double *z, unsigned size) {
     }
 }
 
-static void czt(complex double *z, unsigned n, complex double *ztrans, unsigned m, complex double w, complex double a) {
-    unsigned k;
-
+static unsigned wf_clp2(unsigned x) {
+    x -= 1;
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    return x + 1;
+}
+/**
+ * @brief Ближайшая степень двойки >= x
+ */
+#define WF_CLP2(x) wf_clp2(x)
+/**
+ * @brief Чирп-алгоритм БПФ
+ */
+static void
+wf_czt(complex double *z, unsigned n, complex double *ztrans, unsigned m, complex double w, complex double a) {
+    unsigned k, fft_size;
     complex double *zz, *w2;
 
-    /* Determine next-biggest power-of-two that fits the (n + m - 1) entries we need. */
-    unsigned fft_size = 1;
-    while(fft_size < n + m - 1) {
-        fft_size *= 2;
-    }
-
+    fft_size = wf_clp2(n + m - 1);
     zz = malloc(fft_size * sizeof(*zz));
     if(!zz) {
         return;
@@ -206,13 +244,12 @@ static void czt(complex double *z, unsigned n, complex double *ztrans, unsigned 
     /* Initialize zz */
     for(k = 0; k < fft_size; ++k) {
         if(k < n) {
-            const complex double w1 = cpow(w, 0.5 * k * k) / cpow(a, k);
-            zz[k] = w1 * z[k];
+            zz[k] = cpow(w, 0.5 * k * k) / cpow(a, k) * z[k];
         } else {
             zz[k] = 0;
         }
     }
-    fft_radix2(zz, fft_size);
+    wf_fft_radix2(zz, fft_size);
 
     for(k = 0; k < fft_size; ++k) {
         if(k < n + m - 1) {
@@ -223,12 +260,12 @@ static void czt(complex double *z, unsigned n, complex double *ztrans, unsigned 
             w2[k] = 0;
         }
     }
-    fft_radix2(w2, fft_size);
+    wf_fft_radix2(w2, fft_size);
 
     for(k = 0; k < fft_size; ++k) {
         zz[k] *= w2[k];
     }
-    fft_radix2(zz, fft_size);
+    wf_fft_radix2(zz, fft_size);
 
     /* Make an inverse FFT from the forward FFT.
         - scale all elements by 1 / fft_size;
@@ -248,21 +285,6 @@ static void czt(complex double *z, unsigned n, complex double *ztrans, unsigned 
     for(k = 0; k < m; ++k) {
         const complex double w3 = cpow(w, (0.5 * k * k));
         ztrans[k] = w3 * zz[n - 1 + k];
-    }
-}
-
-static void czt_fft(complex double *z, unsigned size) {
-    if(size == 0) {
-        return;
-    }
-
-    if(__builtin_popcount(size) == 1) {
-        fft_radix2(z, size);
-    } else {
-        const complex double w = cexp(-2.0 * WF_PI * I / size);
-        const complex double a = 1;
-
-        czt(z, size, z, size, w, a);
     }
 }
 
@@ -354,7 +376,7 @@ void wf_bohman(WF_TYPE *win, size_t N) {
     }
 
     for(n = 0; n != N; ++n) {
-        fac = fabs(2.0 * n / (N - 1.0) - 1.0);
+        fac = WF_ABS(2.0 * n / (N - 1.0) - 1.0);
         win[n] = (1.0 - fac) * WF_COS(WF_PI * fac) + (1.0 / WF_PI) * WF_SIN(WF_PI * fac);
     }
 }
@@ -507,82 +529,86 @@ void wf_kaiser_bessel_derived(WF_TYPE *win, size_t N, double beta) {
 }
 
 void wf_chebyshev(double *win, size_t N, double alpha) {
-    unsigned i, h;
-    double maxw;
-    const unsigned order = N - 1;
-    const double amplification = WF_POW(10.0, WF_ABS(alpha) / 20.0);
-    const double beta = WF_COSH(WF_ACOSH(amplification) / order);
+    unsigned n, k, h, order;
+    double amp, beta, x, maxw;
+    complex double *W, z;
 
-    complex double *p;
-
-    p = malloc(N * sizeof(*p));
-    if(!p) {
+    if(!win || !N) {
         return;
     }
 
-    if(N % 2) {
-        for(i = 0; i < N; ++i) {
-            const double x = beta * WF_COS(WF_PI * i / N);
+    W = malloc(N * sizeof(*W));
+    if(!W) {
+        return;
+    }
 
+    order = N - 1;
+    amp = WF_POW(10.0, WF_ABS(alpha) / 20.0);
+    beta = WF_COSH(WF_ACOSH(amp) / order);
+
+    if(N % 2) {
+        for(n = 0; n < N; ++n) {
+            x = beta * WF_COS(WF_PI * n / N);
             if(x > 1.0) {
-                p[i] = WF_COSH(order * WF_ACOSH(x));
+                W[n] = WF_COSH(order * WF_ACOSH(x));
             } else if(x < -1.0) {
-                p[i] = WF_COSH(order * WF_ACOSH(-x));
+                W[n] = WF_COSH(order * WF_ACOSH(-x));
             } else {
-                p[i] = WF_COS(order * WF_ACOS(x));
+                W[n] = WF_COS(order * WF_ACOS(x));
             }
         }
 
-        czt_fft(p, N);
+        wf_czt(W, N, W, N, cexp(-WF_2PI * I / N), 1.0);
 
-        /* Example: n = 11
+        /*
+        Example: n = 11
             w[0] w[1] w[2] w[3] w[4] w[5] w[6] w[7] w[8] w[9] w[10]
                                     =
             p[5] p[4] p[3] p[2] p[1] p[0] p[1] p[2] p[3] p[4] p[5]
         */
         h = (N - 1) / 2;
-        for(i = 0; i < N; ++i) {
-            const unsigned j = (i <= h) ? (h - i) : (i - h);
-
-            win[i] = creal(p[j]);
+        for(n = 0; n < N; ++n) {
+            k = (n <= h) ? (h - n) : (n - h);
+            win[n] = creal(W[k]);
         }
     } else {
-        for(i = 0; i < N; ++i) {
-            const double x = beta * WF_COS(WF_PI * i / N);
-
-            const complex double z = cexp(WF_PI * I * i / N);
-
+        for(n = 0; n < N; ++n) {
+            x = beta * WF_COS(WF_PI * n / N);
+            z = cexp(WF_PI * I * n / N);
             if(x > 1) {
-                p[i] = z * WF_COSH(order * WF_ACOSH(x));
+                W[n] = z * WF_COSH(order * WF_ACOSH(x));
             } else if(x < -1) {
-                p[i] = -z * WF_COSH(order * WF_ACOSH(-x));
+                W[n] = -z * WF_COSH(order * WF_ACOSH(-x));
             } else {
-                p[i] = z * WF_COS(order * WF_ACOS(x));
+                W[n] = z * WF_COS(order * WF_ACOS(x));
             }
         }
 
-        czt_fft(p, N);
+        if(WF_IS_POW_OF2(N)) {
+            wf_fft_radix2(W, N);
+        } else {
+            wf_czt(W, N, W, N, cexp(-WF_2PI * I / N), 1.0);
+        }
 
-        /* Example: n = 10
+        /*
+        Example: n = 10
             w[0] w[1] w[2] w[3] w[4] w[5] w[6] w[7] w[8] w[9]
                                     =
             p[5] p[4] p[3] p[2] p[1] p[1] p[2] p[3] p[4] p[5]
         */
         h = N / 2;
-        for(i = 0; i < N; ++i) {
-            const unsigned j = (i < h) ? (h - i) : (i - h + 1);
-
-            win[i] = creal(p[j]);
+        for(n = 0; n < N; ++n) {
+            k = (n < h) ? (h - n) : (n - h + 1);
+            win[n] = creal(W[k]);
         }
     }
 
     maxw = win[0];
-    for(i = 1; i < N; ++i) {
-        maxw = WF_MAX(maxw, win[i]);
+    for(n = 1; n < N; ++n) {
+        maxw = WF_MAX(maxw, win[n]);
     }
-
-    for(i = 0; i < N; ++i) {
-        win[i] /= maxw;
+    for(n = 0; n < N; ++n) {
+        win[n] /= maxw;
     }
 }
 
@@ -594,7 +620,7 @@ void wf_poisson(WF_TYPE *win, size_t N, double tau) {
     }
 
     for(n = 0; n != N; ++n) {
-        win[n] = WF_EXP(-fabs(n - (N - 1.0) / 2.0) / tau);
+        win[n] = WF_EXP(-WF_ABS(n - (N - 1.0) / 2.0) / tau);
     }
 }
 
@@ -610,7 +636,7 @@ void wf_barthann(WF_TYPE *win, size_t N) {
     }
 
     for(n = 0; n != N; ++n) {
-        fac = fabs(n / (N - 1.0) - 0.5);
+        fac = WF_ABS(n / (N - 1.0) - 0.5);
         win[n] = 0.62 - 0.48 * fac + 0.38 * WF_COS(WF_2PI * fac);
     }
 }
