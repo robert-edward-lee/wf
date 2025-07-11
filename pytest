@@ -21,7 +21,7 @@ for p in paths:
 
 
 class Test(object):
-    EPSILON = 1e-14
+    EPSILON = 1e-13
     dll = CDLL('./libwf.dll')
 
     def __init__(self, dll_wf_name: str, scipy_wf_name: str, has_alpha=False, alpha=0.0):

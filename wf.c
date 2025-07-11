@@ -528,7 +528,7 @@ void wf_kaiser_bessel_derived(WF_TYPE *win, size_t N, double beta) {
     }
 }
 
-void wf_chebyshev(double *win, size_t N, double alpha) {
+void wf_chebyshev(WF_TYPE *win, size_t N, double alpha) {
     unsigned n, k, h, order;
     double amp, beta, x, maxw;
     complex double *W, z;
